@@ -6,19 +6,16 @@ from pathlib import Path
 from typing import Dict, List, Tuple, Optional, Any
 from collections import defaultdict
 from langchain.schema import HumanMessage, SystemMessage
-from langchain_openai import AzureChatOpenAI
+from langchain_openai import ChatOpenAI
 from dotenv import load_dotenv
 load_dotenv()
 
 
-VISION_MODEL_NAME = os.getenv("AZURE_VISION_MODEL", "gpt-5")
+VISION_MODEL_NAME = os.getenv("OPENAI_VISION_MODEL", "gpt-4o-mini")
 
-vision_llm = AzureChatOpenAI(
-    azure_endpoint=os.getenv("URL"),
-    api_key=os.getenv("GPT_API"),
-    api_version="2024-02-01",
+vision_llm = ChatOpenAI(
+    api_key=os.getenv("OPENAI_API_KEY"),
     model=VISION_MODEL_NAME,
-    reasoning_effort= 'medium'
 )
 
 
@@ -116,7 +113,7 @@ def _chunk_single_page_with_llm(
     page_images_dir: Path,
 ) -> Dict[str, Any]:
     """
-    Use Azure LLM (vision_llm) to chunk ONE target page.
+    Use OpenAI LLM (vision_llm) to chunk ONE target page.
 
     - target_page: {"page_number": int, "text": str}
     - next_page  : same dict or None (only for context, NOT chunked)
@@ -271,7 +268,7 @@ def chunk_markdown_with_llm(
 
     It will:
       - Parse the markdown into pages using `--- PAGE n ---` markers.
-      - For each page n, call Azure LLM with:
+      - For each page n, call OpenAI LLM with:
             * page n markdown (TARGET)
             * page n+1 markdown (REFERENCE ONLY)
             * screenshots for page n and n+1 (if they exist)

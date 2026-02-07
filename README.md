@@ -1,16 +1,16 @@
-# RAG Pipeline (Azure + Chroma + Streamlit)
+# RAG Pipeline (OpenAI + Chroma + Streamlit)
 
 This repo contains a simple end-to-end RAG workflow:
 
 1) Convert a PDF into page-level markdown with figure/table descriptions.
-2) Chunk the markdown with an Azure vision model.
+2) Chunk the markdown with an OpenAI vision model.
 3) Embed chunks and store them in ChromaDB.
 4) Ask questions via a Streamlit app that retrieves chunks and answers.
 
 ## Files
 
 - `doc_processor.py`: PDF -> page images + figure/table images + `processed_doc.md`.
-- `chunking.py`: Page-aware semantic chunking with Azure vision + writes `chunks.json`.
+- `chunking.py`: Page-aware semantic chunking with OpenAI vision + writes `chunks.json`.
 - `vectorization.py`: Embeds chunks and upserts them into Chroma.
 - `app.py`: Streamlit RAG UI.
 - `main.ipynb`: Example end-to-end pipeline runner.
@@ -20,13 +20,10 @@ This repo contains a simple end-to-end RAG workflow:
 Create a `.env` file with:
 
 ```
-URL=...                # Azure OpenAI endpoint
-GPT_API=...            # Azure OpenAI key
-AZURE_VISION_MODEL=... # Optional, defaults to gpt-5
-AZURE_TEXT_MODEL=...   # Optional, defaults to gpt-5
-AZURE_EMBED_MODEL=...  # Optional, defaults to text-embedding-3-large
-AZURE_CHAT_API_VERSION=2024-02-01
-AZURE_EMBED_API_VERSION=2024-10-21
+OPENAI_API_KEY=...     # OpenAI API key
+OPENAI_VISION_MODEL=... # Optional, defaults to gpt-4o-mini
+OPENAI_CHAT_MODEL=...   # Optional, defaults to gpt-4o-mini
+OPENAI_EMBED_MODEL=...  # Optional, defaults to text-embedding-3-large
 DOC_NAME=sample_2      # Used by app.py for page image lookup
 PAGE_IMAGES_DIR=doc_assets/page_images
 ```

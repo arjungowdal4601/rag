@@ -12,21 +12,18 @@ from docling_core.types.doc import (
 from docling.datamodel.base_models import InputFormat
 from docling.datamodel.pipeline_options import PdfPipelineOptions
 from docling.document_converter import DocumentConverter, PdfFormatOption
-from langchain_openai import AzureChatOpenAI
+from langchain_openai import ChatOpenAI
 from langchain.schema import HumanMessage, SystemMessage
 load_dotenv()
 
 # ==========================================================
-# 1. Azure VLM setup (must be image-capable, e.g. gpt-4o)
+# 1. OpenAI VLM setup (must be image-capable, e.g. gpt-4o)
 # ==========================================================
 
-VISION_MODEL_NAME = os.getenv("AZURE_VISION_MODEL", "gpt-5")
-vision_llm = AzureChatOpenAI(
-    azure_endpoint=os.getenv("URL"),
-    api_key=os.getenv("GPT_API"),
-    api_version="2024-02-01",
+VISION_MODEL_NAME = os.getenv("OPENAI_VISION_MODEL", "gpt-4o-mini")
+vision_llm = ChatOpenAI(
+    api_key=os.getenv("OPENAI_API_KEY"),
     model=VISION_MODEL_NAME,
-    reasoning_effort= 'medium'
 )
 
 def _encode_image_to_b64(image_path: Path) -> str:
@@ -36,7 +33,7 @@ def _encode_image_to_b64(image_path: Path) -> str:
 
 def describe_picture(image_path: Path) -> str:
     """
-    Use Azure GPT-4o to describe a figure/image for retrieval.
+    Use OpenAI to describe a figure/image for retrieval.
     Returns markdown bullet points.
     """
     img_b64 = _encode_image_to_b64(image_path)
@@ -79,7 +76,7 @@ def describe_picture(image_path: Path) -> str:
                                                                                                                                                                                                                                                                                                                                                               
 def describe_table(image_path: Path) -> str:                                                                                                                                                                                                                                                                                                                                                              
     """
-    Use Azure GPT-5 to turn a table image into bullet-point summary.
+    Use OpenAI to turn a table image into bullet-point summary.
     Returns markdown bullet points (no raw table).
     """
     img_b64 = _encode_image_to_b64(image_path)

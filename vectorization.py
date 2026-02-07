@@ -1,7 +1,7 @@
 import os
 import json
 from dotenv import load_dotenv
-from langchain_openai import AzureOpenAIEmbeddings
+from langchain_openai import OpenAIEmbeddings
 import chromadb  # modern Chroma client
 
 
@@ -10,18 +10,14 @@ import chromadb  # modern Chroma client
 # ---------------------------------------------------------
 load_dotenv()
 
-azure_endpoint = os.getenv("URL")
-azure_key = os.getenv("GPT_API")
-AZURE_API_VERSION = "2024-10-21"              # your Azure embedding API version
-EMBEDDING_MODEL = "text-embedding-3-large"    # your deployed embedding model name
+openai_key = os.getenv("OPENAI_API_KEY")
+EMBEDDING_MODEL = os.getenv("OPENAI_EMBED_MODEL", "text-embedding-3-large")
 
 # ---------------------------------------------------------
-# 2. Initialize Azure Embeddings
+# 2. Initialize OpenAI Embeddings
 # ---------------------------------------------------------
-embeddings = AzureOpenAIEmbeddings(
-    azure_endpoint=azure_endpoint,
-    api_key=azure_key,
-    api_version=AZURE_API_VERSION,
+embeddings = OpenAIEmbeddings(
+    api_key=openai_key,
     model=EMBEDDING_MODEL,
 )
 
@@ -32,7 +28,7 @@ def ingest_chunks_to_chroma(
     collection_name: str,
 ) -> int:
     """
-    Load chunk JSON, embed with Azure, and upsert into a Chroma collection.
+    Load chunk JSON, embed with OpenAI, and upsert into a Chroma collection.
 
     Parameters
     ----------
@@ -99,9 +95,9 @@ def ingest_chunks_to_chroma(
         return 0
 
     # ---------------------------------------------------------
-    # 6. Compute embeddings with Azure
+    # 6. Compute embeddings with OpenAI
     # ---------------------------------------------------------
-    print("🔄 Generating embeddings from Azure...")
+    print("🔄 Generating embeddings from OpenAI...")
     vectors = embeddings.embed_documents(documents)
     print(f"✅ Generated {len(vectors)} embeddings for {len(documents)} documents.")
 

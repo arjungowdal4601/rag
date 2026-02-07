@@ -8,7 +8,7 @@ from typing import List, Dict, Any, Tuple, Optional
 import streamlit as st
 from dotenv import load_dotenv
 import chromadb
-from langchain_openai import AzureOpenAIEmbeddings, AzureChatOpenAI
+from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain.schema import SystemMessage, HumanMessage
 
 
@@ -17,19 +17,16 @@ from langchain.schema import SystemMessage, HumanMessage
 # ==========================================================
 load_dotenv()
 
-AZURE_ENDPOINT = os.getenv("URL")
-AZURE_API_KEY = os.getenv("GPT_API")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-if not AZURE_ENDPOINT or not AZURE_API_KEY:
-    raise RuntimeError("URL and GPT_API must be set in .env")
+if not OPENAI_API_KEY:
+    raise RuntimeError("OPENAI_API_KEY must be set in .env")
 
 # Embedding config (same as used during indexing)
-EMBED_API_VERSION = os.getenv("AZURE_EMBED_API_VERSION", "2024-10-21")
-EMBED_MODEL = os.getenv("AZURE_EMBED_MODEL", "text-embedding-3-large")
+EMBED_MODEL = os.getenv("OPENAI_EMBED_MODEL", "text-embedding-3-large")
 
 # Chat model config (for rephrasing + answering)
-CHAT_API_VERSION = os.getenv("AZURE_CHAT_API_VERSION", "2024-02-01")
-CHAT_MODEL = os.getenv("AZURE_TEXT_MODEL", "gpt-5")  # set to your Azure chat deployment name
+CHAT_MODEL = os.getenv("OPENAI_CHAT_MODEL", "gpt-4o-mini")
 
 # Chroma config
 CHROMA_PATH = "doc_assets/embedding_chroma_db/"
@@ -45,21 +42,17 @@ SIMILARITY_THRESHOLD = 0.65  # 80% similarity
 # 2. Initialize models + vector store
 # ==========================================================
 @st.cache_resource
-def get_embeddings_model() -> AzureOpenAIEmbeddings:
-    return AzureOpenAIEmbeddings(
-        azure_endpoint=AZURE_ENDPOINT,
-        api_key=AZURE_API_KEY,
-        api_version=EMBED_API_VERSION,
+def get_embeddings_model() -> OpenAIEmbeddings:
+    return OpenAIEmbeddings(
+        api_key=OPENAI_API_KEY,
         model=EMBED_MODEL,
     )
 
 
 @st.cache_resource
-def get_chat_model() -> AzureChatOpenAI:
-    return AzureChatOpenAI(
-        azure_endpoint=AZURE_ENDPOINT,
-        api_key=AZURE_API_KEY,
-        api_version=CHAT_API_VERSION,
+def get_chat_model() -> ChatOpenAI:
+    return ChatOpenAI(
+        api_key=OPENAI_API_KEY,
         model=CHAT_MODEL,
         temperature=0.1,
     )
@@ -192,7 +185,7 @@ def generate_answer(
     retrieved_chunks: List[Dict[str, Any]],
     page_images: List[Dict[str, Any]],
 ) -> str:
-    """Call Azure chat model with text chunks and page screenshots to generate answer."""
+    """Call OpenAI chat model with text chunks and page screenshots to generate answer."""
     # Build context text
     ctx_parts: List[str] = []
     for r in retrieved_chunks:
