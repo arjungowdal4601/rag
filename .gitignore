@@ -14,3 +14,4 @@ node_modules/
 dist/
 build/
 .ipynb_checkpoints/
+doc_assets/

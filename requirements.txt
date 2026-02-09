@@ -1,0 +1,10 @@
+python-dotenv
+docling
+docling-core
+langchain
+langchain-openai
+chromadb
+streamlit
+pillow
+ipykernel
+notebook

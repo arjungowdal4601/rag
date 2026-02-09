@@ -9,7 +9,7 @@ import streamlit as st
 from dotenv import load_dotenv
 import chromadb
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
-from langchain.schema import SystemMessage, HumanMessage
+from langchain_core.messages import SystemMessage, HumanMessage
 
 
 # ==========================================================
@@ -35,6 +35,7 @@ CHROMA_COLLECTION_NAME = "embedding"
 # Document / page images config
 DOC_NAME = os.getenv("DOC_NAME", "sample_2")
 PAGE_IMAGES_DIR = Path(os.getenv("PAGE_IMAGES_DIR", "doc_assets/page_images"))
+PAGE_IMAGES_BASE_DIR = Path(os.getenv("PAGE_IMAGES_BASE_DIR", "doc_assets"))
 
 SIMILARITY_THRESHOLD = 0.65  # 80% similarity
 
@@ -94,16 +95,17 @@ def parse_pages_str(pages_str: str) -> List[int]:
 
 
 def load_page_images(pages: List[int]) -> List[Dict[str, Any]]:
-    """Load page screenshots and return list of {page, b64}."""
     unique_pages = sorted(set(pages))
     images: List[Dict[str, Any]] = []
-
     for p in unique_pages:
-        img_path = PAGE_IMAGES_DIR / f"{DOC_NAME}-page-{p}.png"
-        b64 = encode_image_to_b64(img_path)
+        direct = PAGE_IMAGES_DIR / f"{DOC_NAME}-page-{p}.png"
+        b64 = encode_image_to_b64(direct)
+        if not b64:
+            matches = list(PAGE_IMAGES_BASE_DIR.rglob(f"*-page-{p}.png"))
+            if matches:
+                b64 = encode_image_to_b64(matches[0])
         if b64:
             images.append({"page": p, "b64": b64})
-
     return images
 
 
@@ -236,12 +238,12 @@ def generate_answer(
     return resp.content.strip()
 
 
-def answer_question(user_query: str) -> Tuple[str, str, List[Dict[str, Any]], List[Dict[str, Any]]]:
-    """Full pipeline: rephrase → retrieve → load images → answer."""
+def answer_question(
+    user_query: str,
+) -> Tuple[str, str, List[Dict[str, Any]], List[Dict[str, Any]]]:
     rephrased = rephrase_query(user_query)
     retrieved = retrieve_chunks(rephrased)
 
-    # Collect pages used
     pages: List[int] = []
     for r in retrieved:
         pages.extend(r["pages"])
