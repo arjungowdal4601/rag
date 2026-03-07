@@ -17,7 +17,7 @@ load_dotenv()
 # OpenAI VLM setup (image-capable)
 # ==========================================================
 
-VISION_MODEL_NAME = os.getenv("OPENAI_VISION_MODEL", "gpt-4o-mini")
+VISION_MODEL_NAME = os.getenv("OPENAI_VISION_MODEL", "gpt-5.2")
 vision_llm = ChatOpenAI(
     api_key=os.getenv("OPENAI_API_KEY"),
     model=VISION_MODEL_NAME,
