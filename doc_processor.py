@@ -5,9 +5,7 @@ import base64
 from pathlib import Path
 from typing import Dict, List, Tuple, Optional
 from collections import defaultdict
-
 from dotenv import load_dotenv
-
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
 
