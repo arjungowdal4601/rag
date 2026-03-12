@@ -1,0 +1,950 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>doc_processor_2 Architecture</title>
+  <style>
+    :root {
+      --bg-1: #0b1722;
+      --bg-2: #132739;
+      --bg-3: #193a46;
+      --panel: rgba(8, 17, 27, 0.7);
+      --panel-strong: rgba(6, 13, 20, 0.86);
+      --stroke: rgba(130, 203, 182, 0.2);
+      --text: #eff7ef;
+      --muted: #c2d9d0;
+      --accent: #89f0c9;
+      --accent-2: #ffd06e;
+      --accent-3: #72d2ff;
+      --shadow: 0 28px 80px rgba(0, 0, 0, 0.35);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background:
+        radial-gradient(circle at top left, rgba(255, 208, 110, 0.18), transparent 28%),
+        radial-gradient(circle at top right, rgba(114, 210, 255, 0.16), transparent 26%),
+        linear-gradient(135deg, var(--bg-1), var(--bg-2) 58%, var(--bg-3));
+      color: var(--text);
+      font-family: "Trebuchet MS", "Gill Sans", Verdana, sans-serif;
+      overflow: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background:
+        linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+      background-size: 48px 48px;
+      opacity: 0.22;
+      pointer-events: none;
+    }
+
+    .deck {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      padding: 28px;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 28px 28px 88px;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 18px;
+      padding: 28px;
+      border: 1px solid var(--stroke);
+      border-radius: 28px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 26%),
+        var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(16px);
+      opacity: 0;
+      transform: translateX(46px) scale(0.98);
+      pointer-events: none;
+      transition: opacity 320ms ease, transform 320ms ease;
+    }
+
+    .slide.active {
+      opacity: 1;
+      transform: translateX(0) scale(1);
+      pointer-events: auto;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      width: fit-content;
+      padding: 8px 14px;
+      border-radius: 999px;
+      background: rgba(137, 240, 201, 0.12);
+      color: var(--accent);
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      box-shadow: 0 0 18px rgba(137, 240, 201, 0.8);
+    }
+
+    h1,
+    h2 {
+      margin: 0;
+      font-family: "Palatino Linotype", "Book Antiqua", Georgia, serif;
+      line-height: 0.98;
+      letter-spacing: -0.03em;
+    }
+
+    h1 {
+      font-size: clamp(2.8rem, 6vw, 5.8rem);
+      max-width: 10ch;
+    }
+
+    h2 {
+      font-size: clamp(2rem, 4vw, 3.5rem);
+      max-width: 12ch;
+    }
+
+    p,
+    li,
+    .footer {
+      color: var(--muted);
+      font-size: clamp(1rem, 1.35vw, 1.25rem);
+      line-height: 1.5;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 24px;
+      align-items: stretch;
+    }
+
+    .hero-copy {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      justify-content: center;
+    }
+
+    .hero-copy .lead {
+      max-width: 62ch;
+      font-size: clamp(1.1rem, 1.75vw, 1.42rem);
+    }
+
+    .hero-grid,
+    .panel-grid,
+    .triple,
+    .double {
+      display: grid;
+      gap: 16px;
+    }
+
+    .hero-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      align-content: center;
+    }
+
+    .panel-grid.double,
+    .double {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .panel-grid.triple,
+    .triple {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .panel,
+    .card,
+    .stat {
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 22px;
+      padding: 18px 18px 16px;
+      background: var(--panel-strong);
+      min-height: 0;
+    }
+
+    .panel h3,
+    .card h3,
+    .stat h3 {
+      margin: 0 0 10px;
+      color: var(--text);
+      font-size: 1.05rem;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+
+    .accent {
+      color: var(--accent);
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      align-items: stretch;
+    }
+
+    .flow-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .flow-card {
+      position: relative;
+      padding: 18px;
+      border-radius: 22px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(0, 0, 0, 0.18));
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .flow-card::after {
+      content: "->";
+      position: absolute;
+      right: -12px;
+      top: calc(50% - 12px);
+      color: var(--accent);
+      font-weight: 800;
+      font-size: 1.2rem;
+    }
+
+    .flow-card:last-child::after {
+      display: none;
+    }
+
+    .flow-card strong {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 1.1rem;
+      color: var(--text);
+    }
+
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .tag {
+      padding: 7px 12px;
+      border-radius: 999px;
+      background: rgba(114, 210, 255, 0.12);
+      color: #72d2ff;
+      font-size: 0.88rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .stack {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    ul {
+      margin: 0;
+      padding-left: 20px;
+    }
+
+    li + li {
+      margin-top: 10px;
+    }
+
+    .number {
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--accent);
+      line-height: 1;
+      margin-bottom: 10px;
+    }
+
+    .ribbon {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .ribbon .chip {
+      padding: 12px 14px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--text);
+      font-size: 0.95rem;
+    }
+
+    .callout {
+      border-left: 4px solid #ffd06e;
+      padding-left: 16px;
+      color: var(--text);
+      font-size: clamp(1.05rem, 1.5vw, 1.3rem);
+    }
+
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: center;
+      font-size: 0.94rem;
+      opacity: 0.9;
+    }
+
+    .controls {
+      position: fixed;
+      left: 28px;
+      right: 28px;
+      bottom: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      z-index: 10;
+    }
+
+    .control-group {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    button {
+      appearance: none;
+      border: 0;
+      border-radius: 999px;
+      padding: 12px 18px;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text);
+      font: inherit;
+      cursor: pointer;
+      transition: transform 160ms ease, background 160ms ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      background: rgba(255, 255, 255, 0.14);
+    }
+
+    button:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .progress-wrap {
+      flex: 1;
+      min-width: 180px;
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      overflow: hidden;
+    }
+
+    .progress {
+      width: 0;
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), #ffd06e, #72d2ff);
+      border-radius: 999px;
+      transition: width 220ms ease;
+    }
+
+    .slide-index {
+      min-width: 92px;
+      text-align: right;
+      color: var(--muted);
+      font-weight: 700;
+      letter-spacing: 0.05em;
+    }
+
+    .mini-map {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      align-items: stretch;
+    }
+
+    .path {
+      position: relative;
+      min-height: 132px;
+      padding: 18px;
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .path strong {
+      display: block;
+      margin-bottom: 10px;
+      color: var(--text);
+    }
+
+    .path::before {
+      content: "";
+      position: absolute;
+      inset: auto 18px 18px 18px;
+      height: 3px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--accent), transparent);
+    }
+
+    @media (max-width: 980px) {
+      .deck {
+        padding: 16px;
+      }
+
+      .slide {
+        inset: 16px 16px 96px;
+        padding: 20px;
+      }
+
+      .hero,
+      .panel-grid.double,
+      .panel-grid.triple,
+      .double,
+      .triple,
+      .mini-map,
+      .flow,
+      .flow-3 {
+        grid-template-columns: 1fr;
+      }
+
+      .flow-card::after {
+        content: "v";
+        top: auto;
+        right: calc(50% - 6px);
+        bottom: -13px;
+      }
+
+      .controls {
+        left: 16px;
+        right: 16px;
+        bottom: 16px;
+        flex-wrap: wrap;
+      }
+
+      .slide-index {
+        text-align: left;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="deck">
+    <section class="slide active">
+      <div class="eyebrow">YouTube Architecture Deck</div>
+      <div class="hero">
+        <div class="hero-copy">
+          <h1>Understanding <span class="accent">doc_processor_2</span></h1>
+          <p class="lead">
+            A system-level walkthrough of how one Python module turns a raw PDF into
+            retrieval-ready markdown, visual assets, and clean handoffs for the rest of the RAG pipeline.
+          </p>
+          <p class="callout">
+            The point of this deck: explain the architecture, the data flow, and why the
+            module is built page by page rather than as one giant batch.
+          </p>
+        </div>
+        <div class="hero-grid">
+          <div class="stat">
+            <div class="number">1</div>
+            <h3>Input</h3>
+            <p>PDF document enters the pipeline as the single source of truth.</p>
+          </div>
+          <div class="stat">
+            <div class="number">2</div>
+            <h3>Transform</h3>
+            <p>Docling extracts pages, visuals, tables, formulas, and markdown structure.</p>
+          </div>
+          <div class="stat">
+            <div class="number">3</div>
+            <h3>Enrich</h3>
+            <p>OpenAI vision writes retrieval-friendly descriptions for non-text content.</p>
+          </div>
+          <div class="stat">
+            <div class="number">4</div>
+            <h3>Handoff</h3>
+            <p>Downstream chunking, embeddings, and QA consume the normalized outputs.</p>
+          </div>
+        </div>
+      </div>
+      <div class="footer">
+        <span>Use arrow keys or the buttons below</span>
+        <span>Focus: architecture only, no code walkthrough</span>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow">Slide 2</div>
+      <div class="stack">
+        <h2>The Full Pipeline Around doc_processor_2</h2>
+        <div class="flow">
+          <div class="flow-card">
+            <strong>PDF Intake</strong>
+            <p>Raw file enters the ingestion layer.</p>
+            <div class="tag-row">
+              <span class="tag">Input PDF</span>
+              <span class="tag">Page Range Optional</span>
+            </div>
+          </div>
+          <div class="flow-card">
+            <strong>doc_processor_2</strong>
+            <p>Extracts page images, visual crops, formulas, and stitched markdown with descriptions.</p>
+            <div class="tag-row">
+              <span class="tag">Docling</span>
+              <span class="tag">Vision LLM</span>
+            </div>
+          </div>
+          <div class="flow-card">
+            <strong>Chunking</strong>
+            <p>Splits the markdown into page-aware semantic chunks using text plus page screenshots.</p>
+            <div class="tag-row">
+              <span class="tag">chunks.json</span>
+            </div>
+          </div>
+          <div class="flow-card">
+            <strong>Vector + QA</strong>
+            <p>Embeds chunks into Chroma and serves answers through the Streamlit app.</p>
+            <div class="tag-row">
+              <span class="tag">ChromaDB</span>
+              <span class="tag">Streamlit</span>
+            </div>
+          </div>
+        </div>
+        <div class="panel-grid double">
+          <div class="panel">
+            <h3>Why doc_processor_2 matters</h3>
+            <p>
+              It is the normalization layer. Everything after it assumes the document has already been
+              converted into page-labeled, retrieval-friendly material.
+            </p>
+          </div>
+          <div class="panel">
+            <h3>Main output contract</h3>
+            <p>
+              One folder of reusable assets plus one stitched markdown file that becomes the source for chunking.
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="footer">
+        <span>Think of it as the ingestion front end of the whole RAG stack</span>
+        <span>PDF to enriched markdown to chunks to vectors to answers</span>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow">Slide 3</div>
+      <div class="stack">
+        <h2>doc_processor_2 as an Ingestion Architecture</h2>
+        <div class="mini-map">
+          <div class="path">
+            <strong>Control path</strong>
+            <p>Creates output folders, configures the converter, discovers page count, and loops page by page.</p>
+          </div>
+          <div class="path">
+            <strong>Data path</strong>
+            <p>For each page, the module emits images, crops visual assets, enriches them with descriptions, and renders final markdown.</p>
+          </div>
+        </div>
+        <div class="panel-grid triple">
+          <div class="panel">
+            <h3>Input</h3>
+            <p>PDF path, output root, optional page range, image scale.</p>
+          </div>
+          <div class="panel">
+            <h3>Core engines</h3>
+            <p>Docling for extraction and OpenAI vision for semantic descriptions of visual elements.</p>
+          </div>
+          <div class="panel">
+            <h3>Output</h3>
+            <p>Structured folders plus `processed_doc.md` with stable page markers.</p>
+          </div>
+        </div>
+        <div class="ribbon">
+          <span class="chip">CPU-first</span>
+          <span class="chip">Single-page processing</span>
+          <span class="chip">Retrieval-oriented outputs</span>
+          <span class="chip">Page-level traceability</span>
+        </div>
+      </div>
+      <div class="footer">
+        <span>It is not the chatbot and not the vector store</span>
+        <span>It is the document preparation layer</span>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow">Slide 4</div>
+      <div class="stack">
+        <h2>Internal Building Blocks</h2>
+        <div class="flow flow-3">
+          <div class="flow-card">
+            <strong>Docling Converter</strong>
+            <p>Runs OCR, table extraction, formula enrichment, page rendering, and image extraction from the PDF.</p>
+          </div>
+          <div class="flow-card">
+            <strong>Asset Collectors</strong>
+            <p>Walk the parsed document and separate pictures, tables, and formulas into dedicated buckets per page.</p>
+          </div>
+          <div class="flow-card">
+            <strong>Markdown Renderer</strong>
+            <p>Replaces placeholders with image links and generated prose so each page becomes retrieval-ready markdown.</p>
+          </div>
+        </div>
+        <div class="panel-grid double">
+          <div class="panel">
+            <h3>Configuration choices</h3>
+            <ul>
+              <li>OCR is enabled so scanned or image-heavy PDFs still produce usable text.</li>
+              <li>Table and formula extraction are enabled because those elements matter for retrieval.</li>
+              <li>Page, picture, and table images are all rendered for later reuse.</li>
+            </ul>
+          </div>
+          <div class="panel">
+            <h3>Architecture implication</h3>
+            <ul>
+              <li>The processor is doing both structural extraction and semantic enrichment.</li>
+              <li>It converts visual knowledge into searchable text without losing image references.</li>
+              <li>Every downstream stage inherits the page alignment established here.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="footer">
+        <span>Three major zones: extract, enrich, assemble</span>
+        <span>That is the mental model to explain on video</span>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow">Slide 5</div>
+      <div class="stack">
+        <h2>Why It Runs Page by Page</h2>
+        <div class="panel-grid double">
+          <div class="panel">
+            <h3>Execution loop</h3>
+            <div class="flow flow-3">
+              <div class="flow-card">
+                <strong>Count pages</strong>
+                <p>Find the start and end page to process.</p>
+              </div>
+              <div class="flow-card">
+                <strong>Convert one page</strong>
+                <p>Pass a single-page range into the converter.</p>
+              </div>
+              <div class="flow-card">
+                <strong>Cleanup</strong>
+                <p>Release memory before moving to the next page.</p>
+              </div>
+            </div>
+          </div>
+          <div class="panel">
+            <h3>Why this shape is useful</h3>
+            <ul>
+              <li>Limits peak memory and keeps the pipeline stable on modest hardware.</li>
+              <li>Makes page numbers explicit and reliable throughout the pipeline.</li>
+              <li>Produces per-page markdown files that are easy to inspect and debug.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="panel-grid triple">
+          <div class="panel">
+            <h3>Operational benefit</h3>
+            <p>Failures are isolated to a page instead of taking down the whole document.</p>
+          </div>
+          <div class="panel">
+            <h3>Retrieval benefit</h3>
+            <p>Downstream chunks can keep clean page provenance.</p>
+          </div>
+          <div class="panel">
+            <h3>Content benefit</h3>
+            <p>Images, tables, and formulas remain tied to the page where they appeared.</p>
+          </div>
+        </div>
+      </div>
+      <div class="footer">
+        <span>Architecture choice: stability over raw throughput</span>
+        <span>That is the key reason this module feels different</span>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow">Slide 6</div>
+      <div class="stack">
+        <h2>Visual Asset Enrichment</h2>
+        <div class="panel-grid triple">
+          <div class="panel">
+            <h3>Pictures</h3>
+            <p>Each extracted figure becomes a PNG crop plus a dense natural-language description.</p>
+            <div class="tag-row">
+              <span class="tag">Searchable diagrams</span>
+            </div>
+          </div>
+          <div class="panel">
+            <h3>Tables</h3>
+            <p>Tables become images plus prose summaries instead of raw table reconstruction.</p>
+            <div class="tag-row">
+              <span class="tag">Semantic table meaning</span>
+            </div>
+          </div>
+          <div class="panel">
+            <h3>Formulas</h3>
+            <p>Equations become image crops plus a LaTeX line and short explanation.</p>
+            <div class="tag-row">
+              <span class="tag">Equation traceability</span>
+            </div>
+          </div>
+        </div>
+        <div class="panel-grid double">
+          <div class="panel">
+            <h3>Important architecture detail</h3>
+            <p>
+              The system preserves asset order as it walks the page, so the final markdown can reinsert
+              the right description in the right place.
+            </p>
+          </div>
+          <div class="panel">
+            <h3>Why this matters for RAG</h3>
+            <p>
+              RAG systems retrieve text, not raw visual intuition. These descriptions convert images and tables
+              into searchable knowledge while still keeping the original asset files around.
+            </p>
+          </div>
+        </div>
+        <div class="ribbon">
+          <span class="chip">Image crop</span>
+          <span class="chip">Vision model prompt</span>
+          <span class="chip">Dense description</span>
+          <span class="chip">Markdown reinsertion</span>
+        </div>
+      </div>
+      <div class="footer">
+        <span>Visual content becomes retrievable text</span>
+        <span>That is the architectural superpower of this module</span>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow">Slide 7</div>
+      <div class="stack">
+        <h2>How Final Markdown Is Assembled</h2>
+        <div class="panel-grid double">
+          <div class="panel">
+            <h3>Raw extraction</h3>
+            <p>Docling first exports page markdown with placeholders for images.</p>
+          </div>
+          <div class="panel">
+            <h3>Normalization</h3>
+            <p>Tables and display formulas are converted into custom placeholders so every asset type follows the same replacement pattern.</p>
+          </div>
+        </div>
+        <div class="flow">
+          <div class="flow-card">
+            <strong>Page markdown</strong>
+            <p>Text with temporary placeholders.</p>
+          </div>
+          <div class="flow-card">
+            <strong>Placeholder scan</strong>
+            <p>Walk left to right through the page content.</p>
+          </div>
+          <div class="flow-card">
+            <strong>Asset replacement</strong>
+            <p>Insert image references and generated descriptions.</p>
+          </div>
+          <div class="flow-card">
+            <strong>Page block</strong>
+            <p>Wrap the result with a `--- PAGE n ---` marker.</p>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>The output contract downstream depends on</h3>
+          <ul>
+            <li>Stable page markers for page-aware chunking.</li>
+            <li>Relative asset paths that point to saved images.</li>
+            <li>One stitched markdown file that preserves reading order across the whole document.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer">
+        <span>By the end of this stage, the PDF has effectively been rewritten as enriched markdown</span>
+        <span>That markdown becomes the canonical text source</span>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow">Slide 8</div>
+      <div class="stack">
+        <h2>Downstream Handoff: Chunking to Answers</h2>
+        <div class="flow">
+          <div class="flow-card">
+            <strong>Chunking Layer</strong>
+            <p>Reads `processed_doc.md`, keeps page boundaries, and can peek at the next page to preserve cross-page meaning.</p>
+          </div>
+          <div class="flow-card">
+            <strong>Embedding Layer</strong>
+            <p>Embeds each refreshed chunk and stores it in a persistent Chroma collection with page metadata.</p>
+          </div>
+          <div class="flow-card">
+            <strong>Retrieval Layer</strong>
+            <p>Rephrases the user query, searches similar chunks, and collects associated page numbers.</p>
+          </div>
+          <div class="flow-card">
+            <strong>Answer Layer</strong>
+            <p>Combines retrieved text with page screenshots to generate grounded answers in the Streamlit app.</p>
+          </div>
+        </div>
+        <div class="panel-grid double">
+          <div class="panel">
+            <h3>Files passed downstream</h3>
+            <div class="ribbon">
+              <span class="chip">processed_doc.md</span>
+              <span class="chip">page_images/</span>
+              <span class="chip">chunks.json</span>
+              <span class="chip">Chroma collection</span>
+            </div>
+          </div>
+          <div class="panel">
+            <h3>Main message for the audience</h3>
+            <p>
+              `doc_processor_2` does not answer questions itself. It prepares the document so the later RAG stages can retrieve and answer accurately.
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="footer">
+        <span>The architecture is sequential but cleanly staged</span>
+        <span>Each layer consumes a concrete artifact from the previous one</span>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow">Slide 9</div>
+      <div class="stack">
+        <h2>The 30-Second Summary</h2>
+        <div class="panel-grid triple">
+          <div class="panel">
+            <h3>What it is</h3>
+            <p>An ingestion-and-enrichment module for RAG, not a general PDF viewer or chatbot.</p>
+          </div>
+          <div class="panel">
+            <h3>What it does</h3>
+            <p>Turns a PDF into page-aware markdown plus searchable descriptions of visuals, tables, and formulas.</p>
+          </div>
+          <div class="panel">
+            <h3>Why it matters</h3>
+            <p>It gives the rest of the RAG pipeline structured, grounded inputs instead of messy raw document data.</p>
+          </div>
+        </div>
+        <div class="panel-grid double">
+          <div class="panel">
+            <h3>Best way to explain it on YouTube</h3>
+            <ul>
+              <li>Start with the end-to-end pipeline.</li>
+              <li>Zoom into `doc_processor_2` as the front-door transformer.</li>
+              <li>Show how visuals become text and why page markers matter.</li>
+              <li>End with the clean handoff into chunking, vectors, and QA.</li>
+            </ul>
+          </div>
+          <div class="panel">
+            <h3>One-line takeaway</h3>
+            <p class="callout">
+              `doc_processor_2` is the stage that makes a PDF understandable to the rest of the RAG system.
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="footer">
+        <span>Close on the transformation, not the implementation details</span>
+        <span>PDF to enriched artifacts to RAG-ready knowledge</span>
+      </div>
+    </section>
+  </div>
+
+  <div class="controls">
+    <div class="control-group">
+      <button id="prev">Previous</button>
+      <button id="next">Next</button>
+    </div>
+    <div class="progress-wrap" aria-hidden="true">
+      <div class="progress" id="progress"></div>
+    </div>
+    <div class="slide-index" id="slide-index">01 / 09</div>
+  </div>
+
+  <script>
+    const slides = Array.from(document.querySelectorAll(".slide"));
+    const prevButton = document.getElementById("prev");
+    const nextButton = document.getElementById("next");
+    const progress = document.getElementById("progress");
+    const indexLabel = document.getElementById("slide-index");
+    let current = 0;
+
+    function pad(n) {
+      return String(n).padStart(2, "0");
+    }
+
+    function render() {
+      slides.forEach((slide, i) => {
+        slide.classList.toggle("active", i === current);
+      });
+
+      prevButton.disabled = current === 0;
+      nextButton.disabled = current === slides.length - 1;
+      indexLabel.textContent = `${pad(current + 1)} / ${pad(slides.length)}`;
+      progress.style.width = `${((current + 1) / slides.length) * 100}%`;
+    }
+
+    function move(delta) {
+      const next = current + delta;
+      if (next < 0 || next >= slides.length) {
+        return;
+      }
+      current = next;
+      render();
+    }
+
+    prevButton.addEventListener("click", () => move(-1));
+    nextButton.addEventListener("click", () => move(1));
+
+    window.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowRight" || event.key === "PageDown" || event.key === " ") {
+        event.preventDefault();
+        move(1);
+      }
+      if (event.key === "ArrowLeft" || event.key === "PageUp") {
+        event.preventDefault();
+        move(-1);
+      }
+      if (event.key === "Home") {
+        current = 0;
+        render();
+      }
+      if (event.key === "End") {
+        current = slides.length - 1;
+        render();
+      }
+    });
+
+    render();
+  </script>
+</body>
+</html>
